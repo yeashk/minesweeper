@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>שולה מוקשים - Minesweeper Deluxe</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='8' fill='%23111'/><circle cx='13' cy='13' r='2' fill='%23fff'/><path d='M16 3v26M3 16h26M7 7l18 18M7 25L25 7' stroke='%23111' stroke-width='2.5'/></svg>">
+  <style>
+    :root {
+      --bg-color: #c0c0c0;
+      --border-light: #ffffff;
+      --border-dark: #808080;
+      --border-darker: #404040;
+      --text-color: #000000;
+      --cell-bg: #c0c0c0;
+      --cell-size: 32px;
+      --display-bg: #000000;
+      --display-red: #ff0000;
+    }
+
+    [data-theme="modern"] {
+      --bg-color: #1e1e2f;
+      --border-light: #3d3d5c;
+      --border-dark: #12121d;
+      --border-darker: #0d0d15;
+      --text-color: #f0f0f5;
+      --cell-bg: #2a2a40;
+      --display-bg: #10101a;
+      --display-red: #00ffcc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #333;
+      background: radial-gradient(circle, #2b32b2 0%, #1488cc 100%);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      direction: rtl;
+    }
+
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      max-width: 100%;
+    }
+
+    /* Top App Bar */
+    .top-controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px 16px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .top-controls h1 {
+      font-size: 1.3rem;
+      color: #111;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .top-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 6px 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      color: #333;
+    }
+
+    .btn:hover {
+      background: #f0f0f0;
+      border-color: #999;
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn.primary {
+      background: #2b32b2;
+      color: white;
+      border-color: #1a2080;
+    }
+
+    .btn.primary:hover {
+      background: #1e248a;
+    }
+
+    /* Window Container (Retro / Modern) */
+    .game-window {
+      background-color: var(--bg-color);
+      padding: 10px;
+      border-top: 3px solid var(--border-light);
+      border-left: 3px solid var(--border-light);
+      border-right: 3px solid var(--border-dark);
+      border-bottom: 3px solid var(--border-dark);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+      display: inline-block;
+      border-radius: 4px;
+      max-width: 98vw;
+      overflow-x: auto;
+    }
+
+    [data-theme="modern"] .game-window {
+      border-radius: 16px;
+      border: 2px solid var(--border-light);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Header info bar */
+    .game-header {
+      background-color: var(--bg-color);
+      border-top: 3px solid var(--border-dark);
+      border-left: 3px solid var(--border-dark);
+      border-right: 3px solid var(--border-light);
+      border-bottom: 3px solid var(--border-light);
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+    }
+
+    [data-theme="modern"] .game-header {
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    /* 7-Segment Digital Display */
+    .digital-display {
+      background-color: var(--display-bg);
+      color: var(--display-red);
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 28px;
+      font-weight: 900;
+      padding: 2px 8px;
+      border-top: 2px solid var(--border-darker);
+      border-left: 2px solid var(--border-darker);
+      border-right: 2px solid var(--border-light);
+      border-bottom: 2px solid var(--border-light);
+      min-width: 72px;
+      text-align: center;
+      letter-spacing: 2px;
+      border-radius: 4px;
+      text-shadow: 0 0 8px var(--display-red);
+    }
+
+    /* Face button */
+    .face-btn {
+      width: 44px;
+      height: 44px;
+      background: var(--bg-color);
+      border-top: 3px solid var(--border-light);
+      border-left: 3px solid var(--border-light);
+      border-right: 3px solid var(--border-dark);
+      border-bottom: 3px solid var(--border-dark);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      padding: 2px;
+      transition: filter 0.1s;
+    }
+
+    .face-btn:active, .face-btn.pressed {
+      border-top: 3px solid var(--border-dark);
+      border-left: 3px solid var(--border-dark);
+      border-right: 3px solid var(--border-light);
+      border-bottom: 3px solid var(--border-light);
+      padding: 4px 0 0 4px;
+    }
+
+    .face-btn svg, .face-btn img {
+      width: 32px;
+      height: 32px;
+      pointer-events: none;
+    }
+
+    /* Grid Frame */
+    .grid-container {
+      border-top: 3px solid var(--border-dark);
+      border-left: 3px solid var(--border-dark);
+      border-right: 3px solid var(--border-light);
+      border-bottom: 3px solid var(--border-light);
+      display: grid;
+      background-color: var(--border-dark);
+      gap: 1px;
+      margin: 0 auto;
+      overflow: auto;
+      max-height: 72vh;
+    }
+
+    [data-theme="modern"] .grid-container {
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+      background: rgba(0, 0, 0, 0.4);
+      gap: 2px;
+    }
+
+    /* Cells */
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      background-color: var(--cell-bg);
+      border-top: 3px solid var(--border-light);
+      border-left: 3px solid var(--border-light);
+      border-right: 3px solid var(--border-dark);
+      border-bottom: 3px solid var(--border-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: calc(var(--cell-size) * 0.58);
+      cursor: pointer;
+      position: relative;
+    }
+
+    [data-theme="modern"] .cell {
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    [data-theme="modern"] .cell:not(.revealed):hover {
+      background: #393957;
+      transform: scale(1.04);
+      z-index: 2;
+    }
+
+    .cell.revealed {
+      border: 1px solid #999;
+      background-color: #dcdcdc;
+      cursor: default;
+    }
+
+    [data-theme="modern"] .cell.revealed {
+      border: 1px solid #1a1a26;
+      background: #181824;
+    }
+
+    .cell.mine-hit {
+      background-color: #ff3b30 !important;
+    }
+
+    .cell svg, .cell img {
+      width: 80%;
+      height: 80%;
+      pointer-events: none;
+      object-fit: contain;
+    }
+
+    /* Number Colors */
+    .num-1 { color: #0000ff; }
+    .num-2 { color: #008000; }
+    .num-3 { color: #ff0000; }
+    .num-4 { color: #000080; }
+    .num-5 { color: #800000; }
+    .num-6 { color: #008080; }
+    .num-7 { color: #000000; }
+    .num-8 { color: #808080; }
+
+    [data-theme="modern"] .num-1 { color: #38bdf8; text-shadow: 0 0 6px #38bdf888; }
+    [data-theme="modern"] .num-2 { color: #4ade80; text-shadow: 0 0 6px #4ade8088; }
+    [data-theme="modern"] .num-3 { color: #f87171; text-shadow: 0 0 6px #f8717188; }
+    [data-theme="modern"] .num-4 { color: #818cf8; text-shadow: 0 0 6px #818cf888; }
+    [data-theme="modern"] .num-5 { color: #fb923c; text-shadow: 0 0 6px #fb923c88; }
+    [data-theme="modern"] .num-6 { color: #2dd4bf; text-shadow: 0 0 6px #2dd4bf88; }
+    [data-theme="modern"] .num-7 { color: #e879f9; text-shadow: 0 0 6px #e879f988; }
+    [data-theme="modern"] .num-8 { color: #e2e8f0; text-shadow: 0 0 6px #e2e8f088; }
+
+    /* Modals & Bottom Panels */
+    .difficulty-bar {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .diff-btn {
+      padding: 6px 12px;
+      border: 2px solid #bbb;
+      background: #eee;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+
+    .diff-btn.active {
+      background: #2b32b2;
+      color: white;
+      border-color: #1a2080;
+    }
+
+    .footer-bar {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 5px;
+    }
+
+    .footer-bar a {
+      color: #ffdd55;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    /* Confetti Canvas */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* Modal dialog */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: #fff;
+      color: #333;
+      padding: 24px;
+      border-radius: 12px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 16px 32px rgba(0,0,0,0.3);
+    }
+
+    .modal-content h2 {
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+      color: #111;
+    }
+
+    .modal-content p {
+      font-size: 1rem;
+      margin-bottom: 18px;
+      color: #555;
+    }
+
+    .asset-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 15px 0;
+      background: #f7f7f7;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .asset-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+    }
+
+    .asset-item img, .asset-item svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 600px) {
+      :root {
+        --cell-size: 28px;
+      }
+      .digital-display {
+        font-size: 22px;
+        min-width: 58px;
+      }
+      .face-btn {
+        width: 38px;
+        height: 38px;
+      }
+      .top-controls h1 {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="confettiCanvas"></canvas>
+
+  <div class="main-container">
+    <!-- Top Bar Navigation -->
+    <header class="top-controls">
+      <h1>
+        <span style="display:inline-block; transform: scale(1.2);">💣</span>
+        שולה מוקשים Deluxe
+      </h1>
+      <div class="top-buttons">
+        <button id="themeToggleBtn" class="btn" title="שנה ערכת נושא">🎨 מודרני/רטרו</button>
+        <button id="soundToggleBtn" class="btn" title="הפעל/השתק סאונד">🔊 צליל: פועל</button>
+        <button id="assetInfoBtn" class="btn" title="תמונות וגרפיקה">🖼️ מקורות תמונות</button>
+        <button id="helpBtn" class="btn" title="עזרה והוראות">❓ איך משחקים?</button>
+      </div>
+    </header>
+
+    <!-- Main Game Window -->
+    <main class="game-window">
+      <!-- Game Status Bar (Mines Counter, Smiley, Timer) -->
+      <div class="game-header">
+        <div id="mineCounter" class="digital-display" title="מוקשים שנותרו">010</div>
+        <button id="faceBtn" class="face-btn" title="משחק חדש">
+          <!-- Smiley Face (Injected by JS) -->
+        </button>
+        <div id="timerDisplay" class="digital-display" title="זמן בשניות">000</div>
+      </div>
+
+      <!-- Game Board Grid -->
+      <div id="boardGrid" class="grid-container"></div>
+
+      <!-- Difficulty Selector -->
+      <div class="difficulty-bar">
+        <button class="diff-btn active" data-level="beginner">מתחיל (9×9)</button>
+        <button class="diff-btn" data-level="intermediate">מתקדם (16×16)</button>
+        <button class="diff-btn" data-level="expert">מומחה (30×16)</button>
+        <button class="diff-btn" data-level="custom">התאמה אישית</button>
+      </div>
+    </main>
+
+    <!-- Footer info -->
+    <div class="footer-bar">
+      <span>קליק שמאלי: פתיחה | קליק ימני / לחיצה ארוכה: סימון דגל 🚩</span>
+      <span>•</span>
+      <span id="bestTimeDisplay">שיא: -- שניות</span>
+    </div>
+  </div>
+
+  <!-- Modal for Custom Difficulty -->
+  <div id="customModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>התאמה אישית של הלוח</h2>
+      <div style="display: flex; flex-direction: column; gap: 10px; margin: 15px 0; text-align: right;">
+        <label>רוחב (9-40): <input id="customWidth" type="number" min="9" max="40" value="12" style="width: 100%; padding: 6px;"></label>
+        <label>גובה (9-30): <input id="customHeight" type="number" min="9" max="30" value="12" style="width: 100%; padding: 6px;"></label>
+        <label>כמות מוקשים: <input id="customMines" type="number" min="1" max="200" value="20" style="width: 100%; padding: 6px;"></label>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="applyCustomBtn" class="btn primary">החל והתחל</button>
+        <button id="cancelCustomBtn" class="btn">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Assets and Images Info -->
+  <div id="assetsModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+      <h2>תמונות וגרפיקה שנבחרו</h2>
+      <p>המשחק משלב אייקונים וקטוריים (SVG) וגרפיקות בהשראת הגרסאות הקלאסיות מ-Wikimedia Commons ו-Google:</p>
+      
+      <div class="asset-preview-grid">
+        <div class="asset-item">
+          <div id="previewFlag"></div>
+          <span>דגל קלאסי</span>
+        </div>
+        <div class="asset-item">
+          <div id="previewMine"></div>
+          <span>מוקש ימי</span>
+        </div>
+        <div class="asset-item">
+          <div id="previewExplosion"></div>
+          <span>פיצוץ</span>
+        </div>
+        <div class="asset-item">
+          <div id="previewWrongMine"></div>
+          <span>דגל שגוי</span>
+        </div>
+        <div class="asset-item">
+          <div id="previewSmileyNormal"></div>
+          <span>חיוך</span>
+        </div>
+        <div class="asset-item">
+          <div id="previewSmileyScared"></div>
+          <span>בהלה</span>
+        </div>
+        <div class="asset-item">
+          <div id="previewSmileyDead"></div>
+          <span>הפסד</span>
+        </div>
+        <div class="asset-item">
+          <div id="previewSmileyWin"></div>
+          <span>ניצחון</span>
+        </div>
+      </div>
+      <p style="font-size: 0.85rem; color: #777;">האייקונים מוטמעים ישירות בקובץ כדי להבטיח טעינה מיידית ללא תלות ברשת ואיכות חדות מקסימלית!</p>
+      <button id="closeAssetsBtn" class="btn primary">סגור</button>
+    </div>
+  </div>
+
+  <!-- Modal for How to Play -->
+  <div id="helpModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>איך משחקים בשולה מוקשים?</h2>
+      <div style="text-align: right; line-height: 1.6; font-size: 0.95rem; margin-bottom: 20px;">
+        <p>🎯 <strong>המטרה:</strong> לחשוף את כל המשבצות שאינן מכילות מוקשים מבלי להתפוצץ!</p>
+        <p>🔢 <strong>מספרים:</strong> כל מספר מציין כמה מוקשים יש ב-8 המשבצות הסמוכות אליו.</p>
+        <p>🚩 <strong>דגל:</strong> לחץ קליק ימני (או לחיצה ארוכה במסך מגע) כדי לסמן משבצת חשודה במוקש.</p>
+        <p>⚡ <strong>Chording (קליק כפול):</strong> לחיצה על מספר שכבר מסומנים סביבו מספיק דגלים תפתח את שאר המשבצות בבת אחת!</p>
+        <p>🛡️ <strong>פתיחה בטוחה:</strong> הלחיצה הראשונה שלכם תמיד בטוחה ב-100% ומפנה שטח נקי.</p>
+      </div>
+      <button id="closeHelpBtn" class="btn primary">הבנתי, בוא נשחק!</button>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. SVG Graphics & Asset Definitions
+       ========================================================================== */
+    const ASSETS = {
+      flag: `<svg viewBox="0 0 32 32">
+        <path d="M6 28h20v2H6z" fill="#333"/>
+        <path d="M9 25h14v3H9z" fill="#666"/>
+        <path d="M14 4h3v22h-3z" fill="#111"/>
+        <path d="M17 5l12 6-12 6z" fill="#e52521"/>
+        <path d="M17 5v12l10-6z" fill="#b3120f"/>
+        <circle cx="15.5" cy="4" r="2.5" fill="#f5c518"/>
+      </svg>`,
+      
+      mine: `<svg viewBox="0 0 32 32">
+        <!-- Spikes -->
+        <line x1="16" y1="2" x2="16" y2="30" stroke="#111" stroke-width="2.6" stroke-linecap="round"/>
+        <line x1="2" y1="16" x2="30" y2="16" stroke="#111" stroke-width="2.6" stroke-linecap="round"/>
+        <line x1="6" y1="6" x2="26" y2="26" stroke="#111" stroke-width="2.6" stroke-linecap="round"/>
+        <line x1="6" y1="26" x2="26" y2="6" stroke="#111" stroke-width="2.6" stroke-linecap="round"/>
+        <!-- Spike Tips -->
+        <circle cx="16" cy="2.5" r="1.6" fill="#e52521"/>
+        <circle cx="29.5" cy="16" r="1.6" fill="#e52521"/>
+        <circle cx="16" cy="29.5" r="1.6" fill="#e52521"/>
+        <circle cx="2.5" cy="16" r="1.6" fill="#e52521"/>
+        <!-- Mine Body -->
+        <circle cx="16" cy="16" r="8.5" fill="#1b1b1b"/>
+        <circle cx="13" cy="13" r="2.8" fill="#ffffff" opacity="0.65"/>
+      </svg>`,
+
+      mineExploded: `<svg viewBox="0 0 32 32">
+        <polygon points="16,1 20,11 31,8 24,17 31,25 20,23 16,31 12,23 1,25 8,17 1,8 12,11" fill="#f59e0b"/>
+        <polygon points="16,4 19,12 27,9 22,17 27,23 19,21 16,27 13,21 5,23 10,17 5,9 13,12" fill="#ef4444"/>
+        <circle cx="16" cy="16" r="6" fill="#111"/>
+        <circle cx="14" cy="14" r="1.8" fill="#fff" opacity="0.8"/>
+      </svg>`,
+
+      wrongMine: `<svg viewBox="0 0 32 32">
+        <!-- Spikes & Mine body -->
+        <circle cx="16" cy="16" r="7.5" fill="#555"/>
+        <line x1="16" y1="4" x2="16" y2="28" stroke="#555" stroke-width="2"/>
+        <line x1="4" y1="16" x2="28" y2="16" stroke="#555" stroke-width="2"/>
+        <!-- Red Cross -->
+        <line x1="4" y1="4" x2="28" y2="28" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="28" y1="4" x2="4" y2="28" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>`,
+
+      question: `<svg viewBox="0 0 32 32">
+        <text x="16" y="24" font-size="22" font-weight="900" text-anchor="middle" fill="#0284c7" font-family="sans-serif">?</text>
+      </svg>`,
+
+      smileNormal: `<svg viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="16" fill="#ffd43b" stroke="#000" stroke-width="2"/>
+        <!-- Eyes -->
+        <circle cx="12.5" cy="13.5" r="2.2" fill="#000"/>
+        <circle cx="23.5" cy="13.5" r="2.2" fill="#000"/>
+        <!-- Smile -->
+        <path d="M11 20.5c1.8 5 12.2 5 14 0" stroke="#000" stroke-width="2.3" stroke-linecap="round" fill="none"/>
+      </svg>`,
+
+      smileScared: `<svg viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="16" fill="#ffd43b" stroke="#000" stroke-width="2"/>
+        <circle cx="12.5" cy="13.5" r="2.2" fill="#000"/>
+        <circle cx="23.5" cy="13.5" r="2.2" fill="#000"/>
+        <circle cx="18" cy="24" r="3.8" fill="none" stroke="#000" stroke-width="2.2"/>
+      </svg>`,
+
+      smileDead: `<svg viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="16" fill="#ffd43b" stroke="#000" stroke-width="2"/>
+        <!-- X Eyes -->
+        <path d="M10 11l5 5M15 11l-5 5M21 11l5 5M26 11l-5 5" stroke="#000" stroke-width="2.3" stroke-linecap="round"/>
+        <!-- Sad Mouth -->
+        <path d="M11 25.5c2.5-3.5 11.5-3.5 14 0" stroke="#000" stroke-width="2.3" stroke-linecap="round" fill="none"/>
+      </svg>`,
+
+      smileWin: `<svg viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="16" fill="#ffd43b" stroke="#000" stroke-width="2"/>
+        <!-- Sunglasses -->
+        <path d="M6 13h24v2.5c0 3.5-3 6.5-6.5 6.5-2 0-3.5-1-4.5-2.2-1 1.2-2.5 2.2-4.5 2.2-3.5 0-6.5-3-6.5-6.5z" fill="#111"/>
+        <path d="M6 13.5l4-2.5h16l4 2.5" stroke="#111" stroke-width="2"/>
+        <!-- Smirk -->
+        <path d="M12 24.5c2 2.5 8 2.5 10 0" stroke="#000" stroke-width="2.3" stroke-linecap="round" fill="none"/>
+      </svg>`
+    };
+
+    /* Render Asset Previews in the info modal */
+    document.getElementById('previewFlag').innerHTML = ASSETS.flag;
+    document.getElementById('previewMine').innerHTML = ASSETS.mine;
+    document.getElementById('previewExplosion').innerHTML = ASSETS.mineExploded;
+    document.getElementById('previewWrongMine').innerHTML = ASSETS.wrongMine;
+    document.getElementById('previewSmileyNormal').innerHTML = ASSETS.smileNormal;
+    document.getElementById('previewSmileyScared').innerHTML = ASSETS.smileScared;
+    document.getElementById('previewSmileyDead').innerHTML = ASSETS.smileDead;
+    document.getElementById('previewSmileyWin').innerHTML = ASSETS.smileWin;
+
+    /* ==========================================================================
+       2. Web Audio Synthesizer (Realistic Sound FX with Zero Latency)
+       ========================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      click() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(180, this.ctx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.04);
+      }
+
+      flag() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.06);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.06);
+      }
+
+      explode() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        // Low boom + noise
+        const bufferSize = this.ctx.sampleRate * 0.6;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.15));
+        }
+        const whiteNoise = this.ctx.createBufferSource();
+        whiteNoise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(350, this.ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.5);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.55);
+
+        whiteNoise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        whiteNoise.start();
+      }
+
+      win() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          const startTime = this.ctx.currentTime + i * 0.11;
+          gain.gain.setValueAtTime(0.2, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.28);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(startTime);
+          osc.stop(startTime + 0.28);
+        });
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /* ==========================================================================
+       3. Minesweeper Game Core Logic
+       ========================================================================== */
+    const DIFFICULTIES = {
+      beginner: { rows: 9, cols: 9, mines: 10 },
+      intermediate: { rows: 16, cols: 16, mines: 40 },
+      expert: { rows: 16, cols: 30, mines: 99 },
+      custom: { rows: 12, cols: 12, mines: 20 }
+    };
+
+    class MinesweeperGame {
+      constructor() {
+        this.currentDifficulty = 'beginner';
+        this.rows = 9;
+        this.cols = 9;
+        this.totalMines = 10;
+        this.board = [];
+        this.gameStarted = false;
+        this.gameOver = false;
+        this.gameWon = false;
+        this.timer = 0;
+        this.timerInterval = null;
+        this.flagsPlaced = 0;
+        this.revealedCount = 0;
+
+        // Elements
+        this.boardEl = document.getElementById('boardGrid');
+        this.faceBtnEl = document.getElementById('faceBtn');
+        this.mineCounterEl = document.getElementById('mineCounter');
+        this.timerDisplayEl = document.getElementById('timerDisplay');
+        this.bestTimeDisplayEl = document.getElementById('bestTimeDisplay');
+
+        this.initEventListeners();
+        this.loadSettings();
+        this.resetGame();
+      }
+
+      initEventListeners() {
+        // Face button reset
+        this.faceBtnEl.addEventListener('click', () => {
+          this.resetGame();
+        });
+
+        // Difficulty buttons
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const level = e.target.getAttribute('data-level');
+            if (level === 'custom') {
+              openModal('customModal');
+              return;
+            }
+            document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            this.setDifficulty(level);
+          });
+        });
+
+        // Board mouse down / up for scared face
+        this.boardEl.addEventListener('mousedown', (e) => {
+          if (this.gameOver || this.gameWon) return;
+          if (e.button === 0) {
+            this.setFace('scared');
+          }
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (!this.gameOver && !this.gameWon) {
+            this.setFace('normal');
+          }
+        });
+
+        // Prevent context menu on board
+        this.boardEl.addEventListener('contextmenu', (e) => e.preventDefault());
+      }
+
+      setFace(state) {
+        if (state === 'scared') this.faceBtnEl.innerHTML = ASSETS.smileScared;
+        else if (state === 'dead') this.faceBtnEl.innerHTML = ASSETS.smileDead;
+        else if (state === 'win') this.faceBtnEl.innerHTML = ASSETS.smileWin;
+        else this.faceBtnEl.innerHTML = ASSETS.smileNormal;
+      }
+
+      setDifficulty(level, customConfig = null) {
+        this.currentDifficulty = level;
+        if (level === 'custom' && customConfig) {
+          this.rows = customConfig.rows;
+          this.cols = customConfig.cols;
+          this.totalMines = customConfig.mines;
+        } else {
+          const config = DIFFICULTIES[level];
+          this.rows = config.rows;
+          this.cols = config.cols;
+          this.totalMines = config.mines;
+        }
+        this.updateBestScoreDisplay();
+        this.resetGame();
+      }
+
+      resetGame() {
+        clearInterval(this.timerInterval);
+        this.timer = 0;
+        this.timerInterval = null;
+        this.gameStarted = false;
+        this.gameOver = false;
+        this.gameWon = false;
+        this.flagsPlaced = 0;
+        this.revealedCount = 0;
+
+        this.setFace('normal');
+        this.updateMineCounter();
+        this.timerDisplayEl.textContent = '000';
+
+        this.createBoardData();
+        this.renderBoard();
+        this.updateBestScoreDisplay();
+      }
+
+      createBoardData() {
+        this.board = [];
+        for (let r = 0; r < this.rows; r++) {
+          const row = [];
+          for (let c = 0; c < this.cols; c++) {
+            row.push({
+              row: r,
+              col: c,
+              isMine: false,
+              isRevealed: false,
+              isFlagged: false,
+              isQuestion: false,
+              neighborMines: 0
+            });
+          }
+          this.board.push(row);
+        }
+      }
+
+      renderBoard() {
+        this.boardEl.innerHTML = '';
+        this.boardEl.style.gridTemplateColumns = `repeat(${this.cols}, var(--cell-size))`;
+
+        for (let r = 0; r < this.rows; r++) {
+          for (let c = 0; c < this.cols; c++) {
+            const cellData = this.board[r][c];
+            const cellEl = document.createElement('div');
+            cellEl.classList.add('cell');
+            cellEl.dataset.row = r;
+            cellEl.dataset.col = c;
+
+            // Touch events for mobile long press
+            let pressTimer = null;
+            cellEl.addEventListener('touchstart', (e) => {
+              if (this.gameOver || this.gameWon) return;
+              pressTimer = setTimeout(() => {
+                this.toggleFlag(cellData, cellEl);
+                if (navigator.vibrate) navigator.vibrate(40);
+                pressTimer = null;
+              }, 400);
+            }, { passive: true });
+
+            cellEl.addEventListener('touchend', (e) => {
+              if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+                this.revealCell(cellData, cellEl);
+              }
+            });
+
+            // Desktop Mouse events
+            cellEl.addEventListener('mousedown', (e) => {
+              if (this.gameOver || this.gameWon) return;
+              if (e.button === 2) {
+                // Right click
+                this.toggleFlag(cellData, cellEl);
+              } else if (e.button === 0) {
+                // Left click
+                if (cellData.isRevealed) {
+                  this.chord(cellData);
+                } else {
+                  this.revealCell(cellData, cellEl);
+                }
+              }
+            });
+
+            this.boardEl.appendChild(cellEl);
+          }
+        }
+      }
+
+      startTimer() {
+        this.timer = 0;
+        this.timerInterval = setInterval(() => {
+          this.timer++;
+          if (this.timer > 999) this.timer = 999;
+          this.timerDisplayEl.textContent = String(this.timer).padStart(3, '0');
+        }, 1000);
+      }
+
+      /* Guaranteed safe first click */
+      plantMines(firstRow, firstCol) {
+        let placed = 0;
+        const total = Math.min(this.totalMines, this.rows * this.cols - 9);
+
+        // Safe zone around first click
+        const safeZone = new Set();
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            safeZone.add(`${firstRow + dr},${firstCol + dc}`);
+          }
+        }
+
+        while (placed < total) {
+          const r = Math.floor(Math.random() * this.rows);
+          const c = Math.floor(Math.random() * this.cols);
+          if (!this.board[r][c].isMine && !safeZone.has(`${r},${c}`)) {
+            this.board[r][c].isMine = true;
+            placed++;
+          }
+        }
+
+        // Calculate neighbor numbers
+        for (let r = 0; r < this.rows; r++) {
+          for (let c = 0; c < this.cols; c++) {
+            if (!this.board[r][c].isMine) {
+              this.board[r][c].neighborMines = this.countNeighbors(r, c, (cell) => cell.isMine);
+            }
+          }
+        }
+      }
+
+      countNeighbors(r, c, predicate) {
+        let count = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            const nr = r + dr;
+            const nc = c + dc;
+            if (nr >= 0 && nr < this.rows && nc >= 0 && nc < this.cols) {
+              if (predicate(this.board[nr][nc])) count++;
+            }
+          }
+        }
+        return count;
+      }
+
+      revealCell(cellData, cellEl) {
+        if (cellData.isRevealed || cellData.isFlagged || this.gameOver || this.gameWon) return;
+
+        // First click setup
+        if (!this.gameStarted) {
+          this.gameStarted = true;
+          this.plantMines(cellData.row, cellData.col);
+          this.startTimer();
+        }
+
+        if (cellData.isMine) {
+          this.triggerGameOver(cellData, cellEl);
+          return;
+        }
+
+        sound.click();
+        this.floodReveal(cellData.row, cellData.col);
+        this.checkWinCondition();
+      }
+
+      floodReveal(r, c) {
+        const queue = [[r, c]];
+        while (queue.length > 0) {
+          const [cr, cc] = queue.shift();
+          const current = this.board[cr][cc];
+          if (current.isRevealed || current.isFlagged) continue;
+
+          current.isRevealed = true;
+          this.revealedCount++;
+          const el = this.getCellEl(cr, cc);
+          el.classList.add('revealed');
+
+          if (current.neighborMines > 0) {
+            el.textContent = current.neighborMines;
+            el.classList.add(`num-${current.neighborMines}`);
+          } else {
+            // Empty tile: cascade to all 8 adjacent neighbors
+            for (let dr = -1; dr <= 1; dr++) {
+              for (let dc = -1; dc <= 1; dc++) {
+                const nr = cr + dr;
+                const nc = cc + dc;
+                if (nr >= 0 && nr < this.rows && nc >= 0 && nc < this.cols) {
+                  if (!this.board[nr][nc].isRevealed && !this.board[nr][nc].isMine) {
+                    queue.push([nr, nc]);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      chord(cellData) {
+        if (!cellData.isRevealed || cellData.neighborMines === 0) return;
+        const flags = this.countNeighbors(cellData.row, cellData.col, (cell) => cell.isFlagged);
+        if (flags === cellData.neighborMines) {
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const nr = cellData.row + dr;
+              const nc = cellData.col + dc;
+              if (nr >= 0 && nr < this.rows && nc >= 0 && nc < this.cols) {
+                const neighbor = this.board[nr][nc];
+                if (!neighbor.isRevealed && !neighbor.isFlagged) {
+                  const el = this.getCellEl(nr, nc);
+                  this.revealCell(neighbor, el);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      toggleFlag(cellData, cellEl) {
+        if (cellData.isRevealed || this.gameOver || this.gameWon) return;
+
+        sound.flag();
+        if (!cellData.isFlagged && !cellData.isQuestion) {
+          // Empty -> Flag
+          cellData.isFlagged = true;
+          this.flagsPlaced++;
+          cellEl.innerHTML = ASSETS.flag;
+        } else if (cellData.isFlagged) {
+          // Flag -> Question
+          cellData.isFlagged = false;
+          cellData.isQuestion = true;
+          this.flagsPlaced--;
+          cellEl.innerHTML = ASSETS.question;
+        } else {
+          // Question -> Empty
+          cellData.isQuestion = false;
+          cellEl.innerHTML = '';
+        }
+
+        this.updateMineCounter();
+      }
+
+      updateMineCounter() {
+        const remaining = this.totalMines - this.flagsPlaced;
+        const formatted = remaining < 0 
+          ? '-' + String(Math.abs(remaining)).padStart(2, '0')
+          : String(remaining).padStart(3, '0');
+        this.mineCounterEl.textContent = formatted;
+      }
+
+      triggerGameOver(hitCell, hitEl) {
+        this.gameOver = true;
+        clearInterval(this.timerInterval);
+        this.setFace('dead');
+        sound.explode();
+
+        hitEl.classList.add('revealed', 'mine-hit');
+        hitEl.innerHTML = ASSETS.mineExploded;
+
+        // Reveal all mines & crossed false flags
+        for (let r = 0; r < this.rows; r++) {
+          for (let c = 0; c < this.cols; c++) {
+            const cell = this.board[r][c];
+            const el = this.getCellEl(r, c);
+            if (cell === hitCell) continue;
+
+            if (cell.isMine && !cell.isFlagged) {
+              el.classList.add('revealed');
+              el.innerHTML = ASSETS.mine;
+            } else if (!cell.isMine && cell.isFlagged) {
+              el.classList.add('revealed');
+              el.innerHTML = ASSETS.wrongMine;
+            }
+          }
+        }
+      }
+
+      checkWinCondition() {
+        const targetReveals = (this.rows * this.cols) - this.totalMines;
+        if (this.revealedCount >= targetReveals) {
+          this.gameWon = true;
+          clearInterval(this.timerInterval);
+          this.setFace('win');
+          sound.win();
+          fireConfetti();
+
+          // Auto flag remaining mines
+          for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+              const cell = this.board[r][c];
+              if (cell.isMine && !cell.isFlagged) {
+                cell.isFlagged = true;
+                const el = this.getCellEl(r, c);
+                el.innerHTML = ASSETS.flag;
+              }
+            }
+          }
+          this.flagsPlaced = this.totalMines;
+          this.updateMineCounter();
+          this.saveBestScore(this.timer);
+        }
+      }
+
+      getCellEl(r, c) {
+        return this.boardEl.querySelector(`[data-row='${r}'][data-col='${c}']`);
+      }
+
+      saveBestScore(seconds) {
+        if (this.currentDifficulty === 'custom') return;
+        const key = `minesweeper_best_${this.currentDifficulty}`;
+        const currentBest = localStorage.getItem(key);
+        if (!currentBest || seconds < parseInt(currentBest, 10)) {
+          localStorage.setItem(key, seconds);
+          this.updateBestScoreDisplay();
+        }
+      }
+
+      updateBestScoreDisplay() {
+        if (this.currentDifficulty === 'custom') {
+          this.bestTimeDisplayEl.textContent = 'התאמה אישית';
+          return;
+        }
+        const key = `minesweeper_best_${this.currentDifficulty}`;
+        const best = localStorage.getItem(key);
+        this.bestTimeDisplayEl.textContent = best ? `שיא: ${best} שניות 🏆` : 'שיא: -- שניות';
+      }
+
+      loadSettings() {
+        const theme = localStorage.getItem('minesweeper_theme') || 'classic';
+        if (theme === 'modern') document.documentElement.setAttribute('data-theme', 'modern');
+      }
+    }
+
+    /* ==========================================================================
+       4. Confetti Celebration Effect
+       ========================================================================== */
+    function fireConfetti() {
+      const canvas = document.getElementById('confettiCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#fde047'];
+
+      for (let i = 0; i < 140; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          vx: (Math.random() - 0.5) * 16,
+          vy: (Math.random() - 0.7) * 18,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          gravity: 0.35,
+          alpha: 1,
+          decay: Math.random() * 0.015 + 0.008
+        });
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = false;
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += p.gravity;
+          p.alpha -= p.decay;
+
+          if (p.alpha > 0) {
+            active = true;
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+            ctx.restore();
+          }
+        });
+
+        if (active) {
+          requestAnimationFrame(animate);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      animate();
+    }
+
+    /* ==========================================================================
+       5. UI Handlers & Modals
+       ========================================================================== */
+    function openModal(id) {
+      document.getElementById(id).classList.add('open');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+
+    // Modal buttons
+    document.getElementById('assetInfoBtn').addEventListener('click', () => openModal('assetsModal'));
+    document.getElementById('closeAssetsBtn').addEventListener('click', () => closeModal('assetsModal'));
+    document.getElementById('helpBtn').addEventListener('click', () => openModal('helpModal'));
+    document.getElementById('closeHelpBtn').addEventListener('click', () => closeModal('helpModal'));
+
+    document.getElementById('cancelCustomBtn').addEventListener('click', () => closeModal('customModal'));
+    document.getElementById('applyCustomBtn').addEventListener('click', () => {
+      const width = Math.min(40, Math.max(9, parseInt(document.getElementById('customWidth').value, 10) || 12));
+      const height = Math.min(30, Math.max(9, parseInt(document.getElementById('customHeight').value, 10) || 12));
+      const maxMines = Math.floor(width * height * 0.85);
+      const mines = Math.min(maxMines, Math.max(1, parseInt(document.getElementById('customMines').value, 10) || 20));
+
+      closeModal('customModal');
+      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-level="custom"]').classList.add('active');
+      game.setDifficulty('custom', { rows: height, cols: width, mines: mines });
+    });
+
+    // Theme toggle
+    const themeBtn = document.getElementById('themeToggleBtn');
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      if (current === 'modern') {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('minesweeper_theme', 'classic');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'modern');
+        localStorage.setItem('minesweeper_theme', 'modern');
+      }
+    });
+
+    // Sound toggle
+    const soundBtn = document.getElementById('soundToggleBtn');
+    soundBtn.addEventListener('click', () => {
+      sound.enabled = !sound.enabled;
+      soundBtn.textContent = sound.enabled ? '🔊 צליל: פועל' : '🔇 צליל: כבוי';
+    });
+
+    // Close modal on click outside
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('open');
+        }
+      });
+    });
+
+    // Start Game Instance
+    const game = new MinesweeperGame();
+  </script>
+</body>
+</html>
